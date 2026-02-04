@@ -26,17 +26,17 @@ beforeAll(async () => {
     adminUserAuthToken = adminLoginRes.body.token;
 });
 
-async function createFranchise() {
+async function createFranchise(userToken, userEmail) {
     
     let newFranchiseName = `${randomName()}` + `testFranchise`
     const newFranchiseRes = await request(app).post('/api/franchise')
     .set({
         "Content-type" : "application/json", 
-        "Authorization" : `Bearer ${adminUserAuthToken}`
+        "Authorization" : `Bearer ${userToken}`
     }).send(
         {
             "name" : newFranchiseName,
-            "admins": [{"email" : `${adminUser.email}`}]
+            "admins": [{"email" : `${userEmail}`}]
         }
     )
 
@@ -47,15 +47,25 @@ async function createFranchise() {
     };
 }
 
-test('getUserFranchises', async () => {
-    const getFranchisesRes = await request(app).get(`/api/franchise/${testUserId}`).set({'Authorization': `Bearer ${testUserAuthToken}`});
-    expect(getFranchisesRes.body).toMatchObject([]);
+test('getFranchises', async () => {
+    // const getFranchisesRes
+})
 
+test('getUserFranchises', async () => {
+    const getUserFranchisesRes = await request(app).get(`/api/franchise/${testUserId}`).set({'Authorization': `Bearer ${testUserAuthToken}`});
+    expect(getUserFranchisesRes.body).toMatchObject([]);
 });
 
 test('createFranchise', async () => {
-    const {newFranchiseRes, newFranchiseName } = await createFranchise();
+    const {newFranchiseRes, newFranchiseName } = await createFranchise(adminUserAuthToken, adminUser.email);
     expect(newFranchiseRes.status).toBe(200);
     expect(newFranchiseRes.body.name).toBe(newFranchiseName);
     expect(newFranchiseRes.body.admins[0]).toHaveProperty('email', adminUser.email);
 });
+
+test('createFranchiseNonAdmin', async () => {
+    let {newFranchiseRes} = await createFranchise(testUserAuthToken, testUser.email)
+    expect(newFranchiseRes.status).toBe(403);
+    expect(newFranchiseRes.body.message).toBe("unable to create a franchise");
+});
+
