@@ -1,6 +1,7 @@
+const {createAdmin, expectValidJwt} = require("./testUtils.js");
+
 const request = require('supertest');
 const app = require('../service');
-const { Role, DB } = require('../database/database.js');
 
 const testUser = { name: 'pizza diner', email: 'reg@test.com', password: 'a' };
 
@@ -24,18 +25,5 @@ test('getUserFranchises', async () => {
 });
 
 function createFranchise() {
-    
-}
 
-function expectValidJwt(potentialJwt) {
-    expect(potentialJwt).toMatch(/^[a-zA-Z0-9\-_]*\.[a-zA-Z0-9\-_]*\.[a-zA-Z0-9\-_]*$/);
-}
-
-async function createAdmin() {
-    let user = { password: 'toomanysecrets', roles: [{ role: Role.Admin }] };
-    user.name = randomName();
-    user.email = user.name + '@admin.com'
-
-    user = await DB.addUser(user);
-    return { ...user, password: 'toomanysecrets' };
 }
