@@ -19,7 +19,6 @@ beforeAll(async () => {
     expectValidJwt(testUserAuthToken);
 
     adminUser = await createAdmin();
-    console.log(adminUser);
     const adminLoginRes = await request(app).put('/api/auth').send(adminUser);
     expect(adminLoginRes.status).toBe(200);
     expectValidJwt(adminLoginRes.body.token);
@@ -48,7 +47,10 @@ async function createFranchise(userToken, userEmail) {
 }
 
 test('getFranchises', async () => {
-    // const getFranchisesRes
+    await createFranchise();
+    const getFranchisesRes = await request(app).get('/api/franchise?page=0&limit=10&name=*');
+    expect(getFranchisesRes.status).toBe(200);
+    expect(getFranchisesRes.body.franchises.length >= 1);
 })
 
 test('getUserFranchises', async () => {
