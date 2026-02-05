@@ -39,9 +39,7 @@ test('updateUser', async () => {
         password: "newsecretpassword"
     });
     expect(updateUserRes.status).toBe(200);
-    console.log(updateUserRes.body.user.id);
-    console.log(testUserId);
-    expect(updateUserRes.body.user.id).not.toBe(testUserId);
+    expect(updateUserRes.body.user.id).toBe(testUserId);
     expect(updateUserRes.body.user.name).toBe("newTestUserName");
 })
 
