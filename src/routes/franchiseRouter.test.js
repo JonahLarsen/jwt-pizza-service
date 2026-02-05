@@ -10,6 +10,7 @@ let testUserId
 
 let adminUser;
 let adminUserAuthToken;
+let adminUserId;
 
 beforeAll(async () => {
     testUser.email = Math.random().toString(36).substring(2,12) + '@test.com';
@@ -23,6 +24,7 @@ beforeAll(async () => {
     expect(adminLoginRes.status).toBe(200);
     expectValidJwt(adminLoginRes.body.token);
     adminUserAuthToken = adminLoginRes.body.token;
+    adminUserId = adminLoginRes.body.user.id;
 });
 
 async function createFranchise(userToken, userEmail) {
@@ -54,12 +56,18 @@ test('getFranchises', async () => {
 })
 
 test('getUserFranchises', async () => {
-    const getUserFranchisesRes = await request(app).get(`/api/franchise/${testUserId}`).set({'Authorization': `Bearer ${testUserAuthToken}`});
-    expect(getUserFranchisesRes.body).toMatchObject([]);
+    const getUserNoFranchisesRes = await request(app).get(`/api/franchise/${testUserId}`).set({'Authorization': `Bearer ${testUserAuthToken}`});
+    expect(getUserNoFranchisesRes.body).toMatchObject([]);
+
+    const {newFranchiseRes, newFranchiseName } = await createFranchise();
+    console.log(newFranchiseName);
+    const getAdminFranchiseRes = await request(app).get(`/api/franchise/${adminUserId}`).set({'Authorization' : `Bearer ${adminUserAuthToken}`});
+    console.log(getAdminFranchiseRes.body);
 });
 
 test('createFranchise', async () => {
     const {newFranchiseRes, newFranchiseName } = await createFranchise(adminUserAuthToken, adminUser.email);
+    console.log(newFranchiseName);
     expect(newFranchiseRes.status).toBe(200);
     expect(newFranchiseRes.body.name).toBe(newFranchiseName);
     expect(newFranchiseRes.body.admins[0]).toHaveProperty('email', adminUser.email);
@@ -69,5 +77,12 @@ test('createFranchiseNonAdmin', async () => {
     let {newFranchiseRes} = await createFranchise(testUserAuthToken, testUser.email)
     expect(newFranchiseRes.status).toBe(403);
     expect(newFranchiseRes.body.message).toBe("unable to create a franchise");
+});
+
+test('deleteFranchise', async () => {
+    const {newFranchiseRes, newFranchiseName } = await createFranchise(adminUserAuthToken, adminUser.email);
+    const deleteFranchiseRes = await request(app).delete(`/api/franchise/${newFranchiseRes.body.id}`).set({'Authorization':`Bearer ${adminUserAuthToken}`});
+    expect(deleteFranchiseRes.status).toBe(200);
+    expect(deleteFranchiseRes.body.message).toBe("franchise deleted");
 });
 
