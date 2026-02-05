@@ -84,18 +84,38 @@ test('deleteFranchise', async () => {
     expect(deleteFranchiseRes.body.message).toBe("franchise deleted");
 });
 
-test('createStore', async() => {
-    const {newFranchiseRes, newFranchiseName} = await createFranchise(adminUserAuthToken, adminUser.email);
+async function createStore(franchiseID) {
     let newStoreName = randomName() + `TestStore`;
-    const createStoreRes = await request(app).post(`/api/franchise/${newFranchiseRes.body.id}/store`)
+    const createStoreRes = await request(app).post(`/api/franchise/${franchiseID}/store`)
     .set({'Content-Type': 'application/json',
         'Authorization' : `Bearer ${adminUserAuthToken}`
     })
     .send({
-        "franchiseId" : `${newFranchiseRes.body.id}`,
+        "franchiseId" : `${franchiseID}`,
         "name" : `${newStoreName}`
     });
+
+    return {
+        createStoreRes: createStoreRes,
+        newStoreName: newStoreName
+    };
+}
+
+test('createStore', async() => {
+    const {newFranchiseRes} = await createFranchise(adminUserAuthToken, adminUser.email);
+    const { createStoreRes, newStoreName } = await createStore(newFranchiseRes.body.id);
     expect(createStoreRes.status).toBe(200)
     expect(createStoreRes.body.name).toBe(newStoreName);  
+});
+
+test('deleteStore', async () => {
+    const {newFranchiseRes} = await createFranchise(adminUserAuthToken, adminUser.email);
+    const {createStoreRes, newStoreName} = await createStore(newFranchiseRes.body.id);
+    expect(createStoreRes.status).toBe(200);
+
+    const deleteStoreRes = await request(app).delete(`/api/franchise/${newFranchiseRes.body.id}/store/${createStoreRes.body.id}`)
+        .set({'Authorization' : `Bearer ${adminUserAuthToken}`});
+    expect(deleteStoreRes.status).toBe(200);
+    expect(deleteStoreRes.body).toMatchObject({message : 'store deleted'})
 })
 
