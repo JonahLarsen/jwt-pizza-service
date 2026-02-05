@@ -1,10 +1,7 @@
-const {createAdmin, expectValidJwt, createFranchise, createStore} = require("./testUtils.js");
+const {expectValidJwt} = require("./testUtils.js");
 
 const request = require('supertest');
 const app = require('../service');
-
-let adminUser;
-let adminUserAuthToken;
 
 const testUser = { name: 'pizza diner', email: 'reg@test.com', password: 'a' };
 
@@ -17,12 +14,6 @@ beforeAll(async () => {
     testUserAuthToken = registerRes.body.token;
     testUserId = registerRes.body.user.id;
     expectValidJwt(testUserAuthToken);
-
-    adminUser = await createAdmin();
-    const adminLoginRes = await request(app).put('/api/auth').send(adminUser);
-    expect(adminLoginRes.status).toBe(200);
-    expectValidJwt(adminLoginRes.body.token);
-    adminUserAuthToken = adminLoginRes.body.token;
 });
 
 
