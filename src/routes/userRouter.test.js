@@ -1,4 +1,4 @@
-const {expectValidJwt} = require("./testUtils.js");
+const {expectValidJwt, randomName} = require("./testUtils.js");
 
 const request = require('supertest');
 const app = require('../service');
@@ -28,19 +28,21 @@ test('getUser', async () => {
 
 
 test('updateUser', async () => {
+    const newUsername = randomName();
+    const newUserEmail = newUsername + `@test.com`
     const updateUserRes = await request(app).put(`/api/user/${testUserId}`)
     .set({
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${testUserAuthToken}`
     })
     .send({
-        name: "newTestUserName",
-        email: "newTestUserEmail@test.com",
+        name: newUsername,
+        email: newUserEmail,
         password: "newsecretpassword"
     });
     expect(updateUserRes.status).toBe(200);
     expect(updateUserRes.body.user.id).toBe(testUserId);
-    expect(updateUserRes.body.user.name).toBe("newTestUserName");
+    expect(updateUserRes.body.user.name).toBe(newUsername);
 })
 
 
