@@ -21,7 +21,7 @@ beforeAll(async () => {
     expect(adminLoginRes.status).toBe(200);
     expectValidJwt(adminLoginRes.body.token);
     adminUserAuthToken = adminLoginRes.body.token;
-})
+});
 
 async function createMenuItem() {
     const testMenuItemObject = {
