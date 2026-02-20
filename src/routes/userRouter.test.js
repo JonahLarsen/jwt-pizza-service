@@ -55,6 +55,7 @@ test('list users', async () => {
   const listUsersRes = await request(app)
     .get('/api/user')
     .set('Authorization', 'Bearer ' + userToken);
+  console.log(listUsersRes.body);
   expect(listUsersRes.status).toBe(200);
 });
 
