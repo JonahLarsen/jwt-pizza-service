@@ -89,7 +89,7 @@ userRouter.delete(
     }
 
     await DB.deleteUser(userId);
-    res.json({ message: "user delete" });
+    res.json({ message: "user deleted" });
   })
 );
 

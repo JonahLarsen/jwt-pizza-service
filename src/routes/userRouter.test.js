@@ -66,6 +66,7 @@ test('list users', async () => {
     .set('Authorization', 'Bearer ' + userToken);
   console.log(listUsersRes.body);
   expect(listUsersRes.status).toBe(200);
+  expect(listUsersRes.body.users.length >= 1)
 });
 
 test('unauthorized delete user', async () => {
@@ -82,6 +83,7 @@ test('authorized delete', async () => {
   const deleteUserRes = await request(app).delete(`/api/user/${user.id}`)
     .set({"Authorization": `Bearer ${adminUserAuthToken}`});
   expect(deleteUserRes.status).toBe(200);
+  expect(deleteUserRes.body).toMatchObject({message: "user deleted"})
 })
 
 async function registerUser(service) {
