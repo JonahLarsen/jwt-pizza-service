@@ -27,6 +27,7 @@ test('getUser', async () => {
 });
 
 
+
 test('updateUser', async () => {
     const newUsername = randomName();
     const newUserEmail = newUsername + `@test.com`
@@ -58,6 +59,14 @@ test('list users', async () => {
   console.log(listUsersRes.body);
   expect(listUsersRes.status).toBe(200);
 });
+
+test('unauthorized delete user', async () => {
+  const [user, userToken] = await registerUser(request(app));
+  const deleteUserRes = await request(app)
+    .delete('/api/user/1')
+    .set('Authorization', `Bearer ${userToken}`);
+  expect(deleteUserRes.status).toBe(403);
+})
 
 async function registerUser(service) {
   const testUser = {
