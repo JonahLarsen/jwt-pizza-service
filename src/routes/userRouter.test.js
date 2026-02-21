@@ -1,4 +1,4 @@
-const {expectValidJwt, randomName} = require("./testUtils.js");
+const {expectValidJwt, randomName, createAdmin} = require("./testUtils.js");
 
 const request = require('supertest');
 const app = require('../service');
@@ -8,12 +8,21 @@ const testUser = { name: 'pizza diner', email: 'reg@test.com', password: 'a' };
 let testUserAuthToken;
 let testUserId;
 
+let adminUser;
+let adminUserAuthToken;
+
 beforeAll(async () => {
     testUser.email = Math.random().toString(36).substring(2,12) + '@test.com';
     const registerRes = await request(app).post('/api/auth').send(testUser);
     testUserAuthToken = registerRes.body.token;
     testUserId = registerRes.body.user.id;
     expectValidJwt(testUserAuthToken);
+
+    adminUser = await createAdmin();
+    const adminLoginRes = await request(app).put('/api/auth').send(adminUser);
+    expect(adminLoginRes.status).toBe(200);
+    expectValidJwt(adminLoginRes.body.token);
+    adminUserAuthToken = adminLoginRes.body.token;
 });
 
 
@@ -25,8 +34,6 @@ test('getUser', async () => {
     expect(getUserRes.status).toBe(200);
     expect(getUserRes.body.name).toBe(testUser.name);
 });
-
-
 
 test('updateUser', async () => {
     const newUsername = randomName();
@@ -52,7 +59,8 @@ test('list users unauthorized', async () => {
 });
 
 test('list users', async () => {
-  const [user, userToken] = await registerUser(request(app));
+  const result = await registerUser(request(app));
+  const userToken = result[1];
   const listUsersRes = await request(app)
     .get('/api/user')
     .set('Authorization', 'Bearer ' + userToken);
@@ -61,14 +69,20 @@ test('list users', async () => {
 });
 
 test('unauthorized delete user', async () => {
-  const [user, userToken] = await registerUser(request(app));
+  const result = await registerUser(request(app));
+  const userToken = result[1];
   const deleteUserRes = await request(app)
     .delete('/api/user/1')
     .set('Authorization', `Bearer ${userToken}`);
   expect(deleteUserRes.status).toBe(403);
 });
 
-
+test('authorized delete', async () => {
+  const [user] = await registerUser(request(app));
+  const deleteUserRes = await request(app).delete(`/api/user/${user.id}`)
+    .set({"Authorization": `Bearer ${adminUserAuthToken}`});
+  expect(deleteUserRes.status).toBe(200);
+})
 
 async function registerUser(service) {
   const testUser = {
