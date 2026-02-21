@@ -66,7 +66,9 @@ test('unauthorized delete user', async () => {
     .delete('/api/user/1')
     .set('Authorization', `Bearer ${userToken}`);
   expect(deleteUserRes.status).toBe(403);
-})
+});
+
+
 
 async function registerUser(service) {
   const testUser = {
