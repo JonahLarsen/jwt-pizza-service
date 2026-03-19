@@ -16,27 +16,45 @@ function getMemoryUsagePercentage() {
 
 
 const requestCounts = {
-    total: [],
-    GET: [],
-    POST: [],
-    PUT: [],
-    DELETE: [],
+    total: 0,
+    GET: 0,
+    POST: 0,
+    PUT: 0,
+    DELETE: 0,
 };
 
 const activeUsers = new Map();
+
+const authTimestamps = {
+    success: 0,
+    fail: 0
+}
 
 
 function requestTracker(req, res, next) {
     const method = req.method;
     const now = Date.now();
 
-    requestCounts.total.push(now);
+    requestCounts.total += 1;
     if (method in requestCounts) {
-        requestCounts[method].push(now);
+        requestCounts[method] += 1;
     }
 
     if (req.user) {
         activeUsers.set(req.user.id, now);
+    }
+
+    if (req.path.startsWith('/api/auth') && (method === 'PUT' || method === 'POST')) {
+        const originalJson = res.json.bind(res);
+        res.json = (body) => {
+            const timestamp = Date.now();
+            if (res.statusCode >= 200 && res.statusCode < 300) {
+                authTimestamps.success += 1;
+            } else {
+                authTimestamps.fail += 1;
+            }
+            return originalJson(body);
+        };
     }
 
     next();
@@ -44,20 +62,19 @@ function requestTracker(req, res, next) {
 
 //This should be sending each type of request per minute and then resetting
 setInterval(() => {
-    const oneMinuteAgo = Date.now() - 60 * 1000;
     const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
 
-    Object.keys(requestCounts).forEach((key) => {
-        requestCounts[key] = requestCounts[key].filter(ts => ts > oneMinuteAgo);
-    });
+    const activeCount = [...activeUsers.values()].filter(ts => ts > fiveMinutesAgo).length;
 
     const metrics = [
-        createMetric('requests_per_minute', requestCounts.total.length, '1', 'sum', 'asInt', { method: 'total'}),
-        createMetric('requests_per_minute', requestCounts.GET.length, '1', 'sum', 'asInt', { method: 'GET' }),
-        createMetric('requests_per_minute', requestCounts.POST.length, '1', 'sum', 'asInt', { method: 'POST' }),
-        createMetric('requests_per_minute', requestCounts.PUT.length, '1', 'sum', 'asInt', { method: 'PUT' }),
-        createMetric('requests_per_minute', requestCounts.DELETE.length, '1', 'sum', 'asInt', { method: 'DELETE' }),
+        createMetric('requests_per_minute', requestCounts.total, '1', 'sum', 'asInt', { method: 'total'}),
+        createMetric('requests_per_minute', requestCounts.GET, '1', 'sum', 'asInt', { method: 'GET' }),
+        createMetric('requests_per_minute', requestCounts.POST, '1', 'sum', 'asInt', { method: 'POST' }),
+        createMetric('requests_per_minute', requestCounts.PUT, '1', 'sum', 'asInt', { method: 'PUT' }),
+        createMetric('requests_per_minute', requestCounts.DELETE, '1', 'sum', 'asInt', { method: 'DELETE' }),
         createMetric('active_users', activeCount, '1', 'sum', 'asInt', {}),
+        createMetric('auth_requests_per_minute', authTimestamps.success, '1', 'sum', 'asInt', { result: 'success'}),
+        createMetric('auth_requests_per_minute', authTimestamps.fail, '1', 'sum', 'asInt', { result: 'fail'}),
     ]
     sendMetricToGrafana(metrics);
 
