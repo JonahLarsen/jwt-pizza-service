@@ -16,36 +16,52 @@ function getMemoryUsagePercentage() {
 
 
 const requestCounts = {
-    total: 0,
-    GET: 0,
-    POST: 0,
-    PUT: 0,
-    DELETE: 0,
+    total: [],
+    GET: [],
+    POST: [],
+    PUT: [],
+    DELETE: [],
 };
+
+const activeUsers = new Map();
+
 
 function requestTracker(req, res, next) {
     const method = req.method;
-    requestCounts.total += 1;
+    const now = Date.now();
+
+    requestCounts.total.push(now);
     if (method in requestCounts) {
-        requestCounts[method] += 1;
+        requestCounts[method].push(now);
     }
+
+    if (req.user) {
+        activeUsers.set(req.user.id, now);
+    }
+
     next();
 }
 
 //This should be sending each type of request per minute and then resetting
 setInterval(() => {
+    const oneMinuteAgo = Date.now() - 60 * 1000;
+    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+
+    Object.keys(requestCounts).forEach((key) => {
+        requestCounts[key] = requestCounts[key].filter(ts => ts > oneMinuteAgo);
+    });
+
     const metrics = [
-        createMetric('requests_per_minute', requestCounts.total, '1', 'sum', 'asInt', { method: 'total'}),
-        createMetric('requests_per_minute', requestCounts.GET, '1', 'sum', 'asInt', { method: 'GET' }),
-        createMetric('requests_per_minute', requestCounts.POST, '1', 'sum', 'asInt', { method: 'POST' }),
-        createMetric('requests_per_minute', requestCounts.PUT, '1', 'sum', 'asInt', { method: 'PUT' }),
-        createMetric('requests_per_minute', requestCounts.DELETE, '1', 'sum', 'asInt', { method: 'DELETE' }),
+        createMetric('requests_per_minute', requestCounts.total.length, '1', 'sum', 'asInt', { method: 'total'}),
+        createMetric('requests_per_minute', requestCounts.GET.length, '1', 'sum', 'asInt', { method: 'GET' }),
+        createMetric('requests_per_minute', requestCounts.POST.length, '1', 'sum', 'asInt', { method: 'POST' }),
+        createMetric('requests_per_minute', requestCounts.PUT.length, '1', 'sum', 'asInt', { method: 'PUT' }),
+        createMetric('requests_per_minute', requestCounts.DELETE.length, '1', 'sum', 'asInt', { method: 'DELETE' }),
+        createMetric('active_users', activeCount, '1', 'sum', 'asInt', {}),
     ]
     sendMetricToGrafana(metrics);
 
-    Object.keys(requestCounts).forEach((key) => (requestCounts[key] = 0));
-
-}, 60000);
+}, 10000);
 
 function createMetric(metricName, metricValue, metricUnit, metricType, valueType, attributes) {
     attributes = { ...attributes, source: config.metrics.source};
