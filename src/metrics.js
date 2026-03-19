@@ -75,6 +75,8 @@ setInterval(() => {
         createMetric('active_users', activeCount, '1', 'sum', 'asInt', {}),
         createMetric('auth_requests_per_minute', authTimestamps.success, '1', 'sum', 'asInt', { result: 'success'}),
         createMetric('auth_requests_per_minute', authTimestamps.fail, '1', 'sum', 'asInt', { result: 'fail'}),
+        createMetric('cpu_percent', getCpuUsagePercentage(), '%', 'gauge', 'asDouble', {}),
+        createMetric('memory_percent', getMemoryUsagePercentage(), '%', 'gauge', 'asDouble', {}),
     ]
     sendMetricToGrafana(metrics);
 
