@@ -30,6 +30,10 @@ const authTimestamps = {
     fail: 0
 }
 
+const pizzaPurchases = {
+    success: 0,
+    fail: 0
+}
 
 function requestTracker(req, res, next) {
     const method = req.method;
@@ -57,6 +61,18 @@ function requestTracker(req, res, next) {
         };
     }
 
+    if (req.path.startsWith('/api/order') && (method === 'POST')) {
+        const originalJson  = res.json.bind(res);
+        res.json = (body) => {
+            if (res.statusCode >= 200 && res.statusCode < 300) {
+                pizzaPurchases.success += 1;
+            } else {
+                pizzaPurchases.fail += 1;
+            }
+            return originalJson(body);
+        };
+    }
+
     next();
 }
 
@@ -77,6 +93,9 @@ setInterval(() => {
         createMetric('auth_requests_per_minute', authTimestamps.fail, '1', 'sum', 'asInt', { result: 'fail'}),
         createMetric('cpu_percent', getCpuUsagePercentage(), '%', 'gauge', 'asDouble', {}),
         createMetric('memory_percent', getMemoryUsagePercentage(), '%', 'gauge', 'asDouble', {}),
+        createMetric('pizzas_sold_per_minute', pizzaPurchases.success, '1', 'sum', 'asInt', { result: 'success'}),
+        createMetric('pizzas_sold_per_minute', pizzaPurchases.fail, '1', 'sum', 'asInt', { result: 'fail' }),
+        
     ]
     sendMetricToGrafana(metrics);
 
