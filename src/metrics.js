@@ -15,21 +15,37 @@ function getMemoryUsagePercentage() {
 }
 
 
-const requests = {};
+const requestCounts = {
+    total: 0,
+    GET: 0,
+    POST: 0,
+    PUT: 0,
+    DELETE: 0,
+};
 
 function requestTracker(req, res, next) {
-    const endpoint = `[${req.method}] ${req.path}`;
-    requests[endpoint] = (requests[endpoint] || 0) + 1;
+    const method = req.method;
+    requestCounts.total += 1;
+    if (method in requestCounts) {
+        requestCounts[method] += 1;
+    }
     next();
 }
 
+//This should be sending each type of request per minute and then resetting
 setInterval(() => {
-    const metrics = []
-    Object.keys(requests).forEach((endpoint) => {
-        metrics.push(createMetric('requests', requests[endpoint], '1', 'sum', 'asInt', { endpoint }));
-    });
+    const metrics = [
+        createMetric('requests_per_minute', requestCounts.total, '1', 'sum', 'asInt', { method: 'total'}),
+        createMetric('requests_per_minute', requestCounts.GET, '1', 'sum', 'asInt', { method: 'GET' }),
+        createMetric('requests_per_minute', requestCounts.POST, '1', 'sum', 'asInt', { method: 'POST' }),
+        createMetric('requests_per_minute', requestCounts.PUT, '1', 'sum', 'asInt', { method: 'PUT' }),
+        createMetric('requests_per_minute', requestCounts.DELETE, '1', 'sum', 'asInt', { method: 'DELETE' }),
+    ]
+    sendMetricToGrafana(metrics);
 
-}, 10000);
+    Object.keys(requestCounts).forEach((key) => (requestCounts[key] = 0));
+
+}, 60000);
 
 function createMetric(metricName, metricValue, metricUnit, metricType, valueType, attributes) {
     attributes = { ...attributes, source: config.source};
@@ -93,5 +109,6 @@ function sendMetricToGrafana(metrics) {
 
 module.exports = {
     getCpuUsagePercentage,
-    getMemoryUsagePercentage
+    getMemoryUsagePercentage,
+    requestTracker,
 }
