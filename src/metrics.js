@@ -1,5 +1,5 @@
 const os = require('os');
-const config = require('./config.js')
+const config = require('./config.js');
 
 function getCpuUsagePercentage() {
     const cpuUsage = os.loadavg()[0] / os.cpus().length;
@@ -35,6 +35,10 @@ const pizzaPurchases = {
     fail: 0
 }
 
+let revenue = 0;
+let factoryLatency = 0
+let serviceLatency = 0;
+
 function requestTracker(req, res, next) {
     const method = req.method;
     const now = Date.now();
@@ -48,10 +52,17 @@ function requestTracker(req, res, next) {
         activeUsers.set(req.user.id, now);
     }
 
+    const start = Date.now();
+    const originalJson = res.json.bind(res);
+    res.json = (body) => {
+        serviceLatency = Date.now() - start;
+        return originalJson(body);
+    };
+
     if (req.path.startsWith('/api/auth') && (method === 'PUT' || method === 'POST')) {
         const originalJson = res.json.bind(res);
         res.json = (body) => {
-            const timestamp = Date.now();
+            serviceLatency = Date.now() - start;
             if (res.statusCode >= 200 && res.statusCode < 300) {
                 authTimestamps.success += 1;
             } else {
@@ -64,11 +75,19 @@ function requestTracker(req, res, next) {
     if (req.path.startsWith('/api/order') && (method === 'POST')) {
         const originalJson  = res.json.bind(res);
         res.json = (body) => {
-            if (res.statusCode >= 200 && res.statusCode < 300) {
-                pizzaPurchases.success += 1;
-            } else {
-                pizzaPurchases.fail += 1;
-            }
+            serviceLatency = Date.now() - start;
+            try {
+                if (res.statusCode >= 200 && res.statusCode < 300) {
+                    pizzaPurchases.success += 1;
+                    if (body.order?.items) {
+                        revenue += body.order.items.reduce((sum, item) => sum + item.price, 0);
+                    }
+                } else {
+                    pizzaPurchases.fail += 1;
+                }
+            } catch (err) {
+                console.error(err);
+            }            
             return originalJson(body);
         };
     }
@@ -88,18 +107,31 @@ setInterval(() => {
         createMetric('requests_per_minute', requestCounts.POST, '1', 'sum', 'asInt', { method: 'POST' }),
         createMetric('requests_per_minute', requestCounts.PUT, '1', 'sum', 'asInt', { method: 'PUT' }),
         createMetric('requests_per_minute', requestCounts.DELETE, '1', 'sum', 'asInt', { method: 'DELETE' }),
-        createMetric('active_users', activeCount, '1', 'sum', 'asInt', {}),
+        createMetric('active_users', activeCount, '1', 'gauge', 'asInt', {}),
         createMetric('auth_requests_per_minute', authTimestamps.success, '1', 'sum', 'asInt', { result: 'success'}),
         createMetric('auth_requests_per_minute', authTimestamps.fail, '1', 'sum', 'asInt', { result: 'fail'}),
         createMetric('cpu_percent', getCpuUsagePercentage(), '%', 'gauge', 'asDouble', {}),
         createMetric('memory_percent', getMemoryUsagePercentage(), '%', 'gauge', 'asDouble', {}),
         createMetric('pizzas_sold_per_minute', pizzaPurchases.success, '1', 'sum', 'asInt', { result: 'success'}),
         createMetric('pizzas_sold_per_minute', pizzaPurchases.fail, '1', 'sum', 'asInt', { result: 'fail' }),
-        
+        createMetric('revenue', revenue, 'BTC', 'sum', 'asDouble', {}),
+
     ]
     sendMetricToGrafana(metrics);
 
 }, 10000);
+
+function setFactoryLatency(latency) {
+    factoryLatency = latency;
+}
+
+setInterval(() => {
+    const metrics = [
+        createMetric('server_latency', serviceLatency, 'ms', 'gauge', 'asInt', {}),
+        createMetric("factory_latency", factoryLatency, 'ms', 'gauge', 'asInt', {})
+    ]
+    sendMetricToGrafana(metrics);
+}, 1000)
 
 function createMetric(metricName, metricValue, metricUnit, metricType, valueType, attributes) {
     attributes = { ...attributes, source: config.metrics.source};
@@ -167,4 +199,7 @@ module.exports = {
     getCpuUsagePercentage,
     getMemoryUsagePercentage,
     requestTracker,
+    sendMetricToGrafana,
+    createMetric,
+    setFactoryLatency
 }
