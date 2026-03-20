@@ -52,11 +52,12 @@ function requestTracker(req, res, next) {
         activeUsers.set(req.user.id, now);
     }
 
+    const path = req.path;
     const start = Date.now();
     const originalJson = res.json.bind(res);
     res.json = (body) => {
         serviceLatency = Date.now() - start;
-        if (req.path.startsWith('/api/auth') && (method === 'PUT' || method === 'POST')) {
+        if (path.startsWith('/api/auth') && (method === 'PUT' || method === 'POST')) {
             if (res.statusCode >= 200 && res.statusCode < 300) {
                 authTimestamps.success += 1;
             } else {
@@ -64,7 +65,7 @@ function requestTracker(req, res, next) {
             }
         }
 
-        if (req.path.startsWith('/api/order') && (method === 'POST')) {
+        if (path.startsWith('/api/order') && (method === 'POST')) {
             try {
                 if (res.statusCode >= 200 && res.statusCode < 300) {
                     pizzaPurchases.success += 1;
@@ -81,39 +82,6 @@ function requestTracker(req, res, next) {
         return originalJson(body);
     };
 
-    if (req.path.startsWith('/api/auth') && (method === 'PUT' || method === 'POST')) {
-        const originalJson = res.json.bind(res);
-        res.json = (body) => {
-            serviceLatency = Date.now() - start;
-            if (res.statusCode >= 200 && res.statusCode < 300) {
-                authTimestamps.success += 1;
-            } else {
-                authTimestamps.fail += 1;
-            }
-            return originalJson(body);
-        };
-    }
-
-    if (req.path.startsWith('/api/order') && (method === 'POST')) {
-        const originalJson  = res.json.bind(res);
-        res.json = (body) => {
-            serviceLatency = Date.now() - start;
-            try {
-                if (res.statusCode >= 200 && res.statusCode < 300) {
-                    pizzaPurchases.success += 1;
-                    if (body.order?.items) {
-                        revenue += body.order.items.reduce((sum, item) => sum + item.price, 0);
-                    }
-                } else {
-                    pizzaPurchases.fail += 1;
-                }
-            } catch (err) {
-                console.error(err);
-            }            
-            return originalJson(body);
-        };
-    }
-
     next();
 }
 
@@ -122,7 +90,6 @@ setInterval(() => {
     const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
 
     const activeCount = [...activeUsers.values()].filter(ts => ts > fiveMinutesAgo).length;
-    console.log(activeCount);
 
     const metrics = [
         createMetric('requests_per_minute', requestCounts.total, '1', 'sum', 'asInt', { method: 'total'}),
