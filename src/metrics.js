@@ -122,6 +122,7 @@ setInterval(() => {
     const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
 
     const activeCount = [...activeUsers.values()].filter(ts => ts > fiveMinutesAgo).length;
+    console.log(activeCount);
 
     const metrics = [
         createMetric('requests_per_minute', requestCounts.total, '1', 'sum', 'asInt', { method: 'total'}),
@@ -129,7 +130,7 @@ setInterval(() => {
         createMetric('requests_per_minute', requestCounts.POST, '1', 'sum', 'asInt', { method: 'POST' }),
         createMetric('requests_per_minute', requestCounts.PUT, '1', 'sum', 'asInt', { method: 'PUT' }),
         createMetric('requests_per_minute', requestCounts.DELETE, '1', 'sum', 'asInt', { method: 'DELETE' }),
-        createMetric('active_users', activeCount, '1', 'gauge', 'asInt', {}),
+        createMetric('active_users', activeCount, '1', 'sum', 'asInt', {}),
         createMetric('auth_requests_per_minute', authTimestamps.success, '1', 'sum', 'asInt', { result: 'success'}),
         createMetric('auth_requests_per_minute', authTimestamps.fail, '1', 'sum', 'asInt', { result: 'fail'}),
         createMetric('cpu_percent', getCpuUsagePercentage(), '%', 'gauge', 'asDouble', {}),
