@@ -56,6 +56,28 @@ function requestTracker(req, res, next) {
     const originalJson = res.json.bind(res);
     res.json = (body) => {
         serviceLatency = Date.now() - start;
+        if (req.path.startsWith('/api/auth') && (method === 'PUT' || method === 'POST')) {
+            if (res.statusCode >= 200 && res.statusCode < 300) {
+                authTimestamps.success += 1;
+            } else {
+                authTimestamps.fail += 1;
+            }
+        }
+
+        if (req.path.startsWith('/api/order') && (method === 'POST')) {
+            try {
+                if (res.statusCode >= 200 && res.statusCode < 300) {
+                    pizzaPurchases.success += 1;
+                    if (body.order?.items) {
+                        revenue += body.order.items.reduce((sum, item) => sum + item.price, 0);
+                    }
+                } else {
+                    pizzaPurchases.fail += 1;
+                }
+            } catch (err) {
+                console.error(err);
+            }            
+        }
         return originalJson(body);
     };
 
