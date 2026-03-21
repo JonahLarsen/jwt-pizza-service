@@ -28,8 +28,17 @@ class Logger {
         return 'info';
     }
 
+    nowString() {
+        return (Math.floor(Date.now()) * 1000000).toString();
+    }
+
+    sanitize(logData) {
+        logData = JSON.stringify(logData);
+        return logData.replace(/\\"password\\":\s*\\"[^"]*\\"/g, '\\"password\\": \\"*****\\"');
+    }
+
     log(level, type, logData) {
-        const labels = { component: config.source, level: level, type: type };
+        const labels = { component: config.logging.source, level: level, type: type };
         const values = [this.nowString(), this.sanitize(logData)];
         const logEvent = { streams: [{ stream: labels, values: [values] }] };
 
@@ -38,12 +47,12 @@ class Logger {
 
     sendLogToGrafana(event) {
         const body = JSON.stringify(event);
-        fetch(`${config.endpointUrl}`, {
+        fetch(`${config.logging.endpointUrl}`, {
             method: 'post',
             body: body,
             headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${config.accountId}:${config.apiKey}`,
+            Authorization: `Bearer ${config.logging.accountId}:${config.logging.apiKey}`,
             },
         }).then((res) => {
             if (!res.ok) console.log('Failed to send log to Grafana');
