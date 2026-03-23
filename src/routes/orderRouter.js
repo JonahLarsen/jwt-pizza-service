@@ -83,7 +83,7 @@ orderRouter.post(
     const order = await DB.addDinerOrder(req.user, orderReq);
     const start = Date.now();
     const factoryRequestBody = { diner: { id: req.user.id, name: req.user.name, email: req.user.email }, order }
-    logger.log('info', 'factory', {requestBody: JSON.stringify(factoryRequestBody)});
+    logger.log('info', 'factory', {request: JSON.stringify(factoryRequestBody)});
     const r = await fetch(`${config.factory.url}/api/order`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', authorization: `Bearer ${config.factory.apiKey}` },
@@ -93,7 +93,7 @@ orderRouter.post(
     metrics.setFactoryLatency(factoryLatency);
 
     const j = await r.json();
-    logger.log('info', 'factory', {responseStatus: r.status, responseBody: JSON.stringify(j)})
+    logger.log('info', 'factory', {statusCode: r.status, response: JSON.stringify(j)})
     if (r.ok) {
       res.send({ order, followLinkToEndChaos: j.reportUrl, jwt: j.jwt });
     } else {

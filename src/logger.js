@@ -11,8 +11,8 @@ class Logger {
             path: req.originalUrl,
             method: req.method,
             statusCode: res.statusCode,
-            reqBody: JSON.stringify(req.body),
-            resBody: JSON.stringify(resBody),
+            request: JSON.stringify(req.body),
+            response: JSON.stringify(resBody),
         };
         const level = this.statusToLogLevel(res.statusCode);
         this.log(level, 'http', logData);
@@ -34,6 +34,7 @@ class Logger {
 
     sanitize(logData) {
         logData = JSON.stringify(logData);
+        logData = logData.replace(/(\\"jwt\\":\s*\\")[^"]*(\\")/g, '\\"jwt\\": \\"*********\\"')
         return logData.replace(/\\"password\\":\s*\\"[^"]*\\"/g, '\\"password\\": \\"*****\\"');
     }
 
