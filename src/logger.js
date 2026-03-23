@@ -35,7 +35,9 @@ class Logger {
     sanitize(logData) {
         logData = JSON.stringify(logData);
         logData = logData.replace(/(\\"jwt\\":\s*\\")[^"]*(\\")/g, '\\"jwt\\": \\"*********\\"')
+        logData = logData.replace(/(\\"token\\":\s*\\")[^"]*(\\")/g, '\\"token\\": \\"*********\\"')
         return logData.replace(/\\"password\\":\s*\\"[^"]*\\"/g, '\\"password\\": \\"*****\\"');
+    
     }
 
     log(level, type, logData) {
