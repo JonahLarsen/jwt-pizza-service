@@ -35,6 +35,10 @@ const pizzaPurchases = {
     fail: 0
 }
 
+const chaosCount = {
+    triggered: 0
+}
+
 let revenue = 0;
 let factoryLatency = 0
 let serviceLatency = 0;
@@ -105,6 +109,7 @@ setInterval(() => {
         createMetric('pizzas_sold_per_minute', pizzaPurchases.success, '1', 'sum', 'asInt', { result: 'success'}),
         createMetric('pizzas_sold_per_minute', pizzaPurchases.fail, '1', 'sum', 'asInt', { result: 'fail' }),
         createMetric('revenue', revenue, 'BTC', 'sum', 'asDouble', {}),
+        createMetric('chaos', chaosCount.triggered, '1', 'sum', 'asInt', {})
 
     ]
     sendMetricToGrafana(metrics);
@@ -185,11 +190,16 @@ function sendMetricToGrafana(metrics) {
         });
 }
 
+function incrementChaos() {
+    chaosCount.triggered += 1;
+}
+
 module.exports = {
     getCpuUsagePercentage,
     getMemoryUsagePercentage,
     requestTracker,
     sendMetricToGrafana,
     createMetric,
-    setFactoryLatency
+    setFactoryLatency,
+    incrementChaos
 }
