@@ -69,9 +69,44 @@ authRouter.post(
   })
 );
 
+
+const loginAttempts = new Map();
+
+const LOGIN_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const MAX_ATTEMPTS = 10;
+
+function loginRateLimiter(req, res, next) {
+  const ip = req.ip;
+  const now = Date.now();
+  const record = loginAttempts.get(ip);
+
+  if (!record || now - record.windowStart > LOGIN_WINDOW_MS) {
+    loginAttempts.set(ip, { count: 1, windowStart: now });
+    return next();
+  }
+
+  if (record.count >= MAX_ATTEMPTS) {
+    const retryAfter = Math.ceil((LOGIN_WINDOW_MS - (now - record.windowStart)) / 1000);
+    return res.status(429).json({ message: `Too many login attempts, please try again in ${retryAfter} seconds` });
+  }
+
+  record.count++;
+  next();
+}
+
+  setInterval(() => {
+    const now = Date.now();
+    for (const [ip, record] of loginAttempts.entries()) {
+      if (now - record.windowStart > LOGIN_WINDOW_MS) {
+        loginAttempts.delete(ip);
+      }
+    }
+  }, LOGIN_WINDOW_MS);
+
 // login
 authRouter.put(
   '/',
+  loginRateLimiter,
   asyncHandler(async (req, res) => {
     const { email, password } = req.body;
     const user = await DB.getUser(email, password);
