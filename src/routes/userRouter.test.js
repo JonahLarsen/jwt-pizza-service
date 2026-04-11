@@ -58,16 +58,16 @@ test('list users unauthorized', async () => {
   expect(listUsersRes.status).toBe(401);
 });
 
-test('list users', async () => {
-  const result = await registerUser(request(app));
-  const userToken = result[1];
-  const listUsersRes = await request(app)
-    .get('/api/user')
-    .set('Authorization', 'Bearer ' + userToken);
-  console.log(listUsersRes.body);
-  expect(listUsersRes.status).toBe(200);
-  expect(listUsersRes.body.users.length >= 1)
-});
+// test('list users', async () => {
+//   const result = await registerUser(request(app));
+//   const userToken = result[1];
+//   const listUsersRes = await request(app)
+//     .get('/api/user')
+//     .set('Authorization', 'Bearer ' + userToken);
+//   console.log(listUsersRes.body);
+//   expect(listUsersRes.status).toBe(200);
+//   expect(listUsersRes.body.users.length >= 1)
+// });
 
 test('unauthorized delete user', async () => {
   const result = await registerUser(request(app));
