@@ -98,6 +98,10 @@ userRouter.get(
   '/',
   authRouter.authenticateToken,
   asyncHandler(async (req, res) => {
+    const user = req.user;
+    if (!user.isRole(Role.Admin)) {
+      return res.status(403).json({ message: "unauthorized" });
+    }
     const { page = 0, limit = 10, name = '*'} = req.query;
     const [users, more] = await DB.listUsers(Number(page), Number(limit), name);
     res.json({ users, more });
